@@ -5,8 +5,15 @@
 #include <vector>
 #include "ppm_image.h"
 
+using namespace std;
+
 namespace agl
 {
+   struct point {
+      int x;
+      int y;
+      ppm_pixel color;
+   };
    enum PrimitiveType {UNDEFINED, LINES, TRIANGLES};
    class canvas
    {
@@ -40,8 +47,16 @@ namespace agl
       // Fill the canvas with the given background color
       void background(unsigned char r, unsigned char g, unsigned char b);
 
+      void drawLine(int ax, int ay, ppm_pixel aColor, int bx, int by, ppm_pixel bColor);
+      void drawLineLow(int ax, int ay, ppm_pixel aColor, int bx, int by, ppm_pixel bColor);
+      void drawLineHigh(int ax, int ay, ppm_pixel aColor, int bx, int by, ppm_pixel bColor);
+      ppm_pixel interpolateColor(ppm_pixel aColor, ppm_pixel bColor, float t);
+
    private:
       ppm_image _canvas;
+      PrimitiveType currentType;
+      ppm_pixel currentColor;
+      vector<point> vertices;
    };
 }
 
