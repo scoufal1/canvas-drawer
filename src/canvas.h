@@ -47,10 +47,29 @@ namespace agl
       // Fill the canvas with the given background color
       void background(unsigned char r, unsigned char g, unsigned char b);
 
-      void drawLine(int ax, int ay, ppm_pixel aColor, int bx, int by, ppm_pixel bColor);
-      void drawLineLow(int ax, int ay, ppm_pixel aColor, int bx, int by, ppm_pixel bColor);
-      void drawLineHigh(int ax, int ay, ppm_pixel aColor, int bx, int by, ppm_pixel bColor);
-      ppm_pixel interpolateColor(ppm_pixel aColor, ppm_pixel bColor, float t);
+      // Draw a line from point a to point b
+      void drawLine(point a, point b);
+
+      // Bresenham. called if width is greater than height
+      void drawLineLow(point a, point b);
+
+      // Bresenham, called if height is greater than width
+      void drawLineHigh(point a, point b);
+
+      // Returns color based on colors of vertices and distance of point from vertices
+      ppm_pixel interpolateColorLine(ppm_pixel aColor, ppm_pixel bColor, float t);
+      ppm_pixel interpolateColorTriangle(ppm_pixel aColor, ppm_pixel bColor, ppm_pixel cColor, 
+         float alpha, float beta, float gamma);
+
+      // Draws triangle with vertices a,b,c
+      void barycentricFill(point a, point b, point c);
+
+      // Returns the minimum/maximum of 3 ints, used to determine bounding box for triangle
+      int minimum(int a, int b, int c); 
+      int maximum(int a, int b, int c); 
+
+      // Implicit line equation used for triangle drawing
+      int implicitLine(point p1, point p2, point p);
 
    private:
       ppm_image _canvas;
