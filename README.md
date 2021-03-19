@@ -48,30 +48,42 @@ canvas-drawer/build $ ../bin/draw_art
 ```
 PrimitiveType POINTS
 ```
+Allows the user to create point primitives.
 
 ![points](https://user-images.githubusercontent.com/48161551/111716999-9040be00-882d-11eb-9a37-af3eff1d3959.png)
 
 ```
 void drawCircle(int x, int y, int rad);
 ```
+Draws a circle with center at (x,y) and given radius.
+
 ![filled-circle](https://user-images.githubusercontent.com/48161551/111717363-486e6680-882e-11eb-9e83-44030f7528d6.png)
 
 ```
 void drawRectangle(int x, int y, int wid, int hgt);
 ```
+Draws a rectangle with center at (x,y) and given width and height.
 
 ![filled-rect](https://user-images.githubusercontent.com/48161551/111717451-6d62d980-882e-11eb-9c34-1a22254d587c.png)
 
 ```
 void noFill();
+void fillShape();
 ```
+Supports both filled shapes and outlined shapes (default is filled).
+
 ![outline-rect](https://user-images.githubusercontent.com/48161551/111717544-9daa7800-882e-11eb-9bb2-665a4452df93.png)
 
 ![outlined-circle](https://user-images.githubusercontent.com/48161551/111717553-a00cd200-882e-11eb-8a3a-609de09c0c02.png)
 
 ```
 void setBlend(BlendType blendType);
+void noBlend();
 ```
+Supports addition, add, and difference blend modes (default is none).
+
+(Note: does not work correctly because triangle edges are drawn twice in barycentricFill)
+
 Multiply:
 
 ![blend-multiply](https://user-images.githubusercontent.com/48161551/111717634-d2b6ca80-882e-11eb-9d46-86f768af38cf.png)
@@ -88,6 +100,9 @@ Difference:
 void backgroundGradient(unsigned char r1, unsigned char g1, unsigned char b1, 
                         unsigned char r2, unsigned char g2, unsigned char b2);
 ```
+
+Allows the user to specify two colors for background and creates a vertical gradient.
+
 ![background-gradient](https://user-images.githubusercontent.com/48161551/111717822-3ccf6f80-882f-11eb-80fa-40a76fdc0ae0.png)
 
 
