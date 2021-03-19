@@ -52,8 +52,7 @@ ppm_pixel ppm_image::get(int row, int col) const
 
 void ppm_image::set(int row, int col, const ppm_pixel& color)
 {
-    if(row < 0 || row >= myHeight || col < 0 || col >= myWidth) {
-        return;
-    }
+    assert(row >= 0 && row < myHeight);
+    assert(col >= 0 && col < myWidth);
     myData[row*myWidth + col] = color;
 }

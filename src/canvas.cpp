@@ -1,5 +1,6 @@
 #include "canvas.h"
 #include <cassert>
+#include <math.h> 
 
 using namespace std;
 using namespace agl;
@@ -15,6 +16,26 @@ canvas::~canvas()
 void canvas::save(const std::string& filename)
 {
    _canvas.save(filename);
+}
+
+void canvas::noFill()
+{
+   fill = false;
+}
+
+void canvas::fillShape() 
+{
+   fill = true;
+}
+
+void canvas::noBlend()
+{
+   blend = NONE;
+}
+
+void canvas::setBlend(BlendType blendType)
+{
+   blend = blendType;
 }
 
 void canvas::begin(PrimitiveType type)
@@ -38,14 +59,36 @@ void canvas::end()
          a = vertices[i];
          b = vertices[i+1];
          c = vertices[i+2];
-         barycentricFill(a,b,c);
+         if(fill) {
+            barycentricFill(a,b,c);
+         } else {
+            drawLine(a,b);
+            drawLine(b,c);
+            drawLine(c,a);
+         }
       }
+   } else if(currentType == POINTS) {
+      for(int i = 0; i < vertices.size(); i++) {
+         a = vertices[i];
+         _canvas.set(a.y, a.x, a.color);
+      } 
+   } else if(currentType == UNDEFINED) {
+         cout << "Need to define type" << endl;
    }
    vertices.clear();
+   currentType = UNDEFINED;
 }
 
 void canvas::vertex(int x, int y)
 {
+   if(x < 0)
+      x = 0;
+   if(x >= _canvas.width())
+      x = _canvas.width()-1;
+   if(y < 0)
+      y = 0;
+   if(y >= _canvas.height())
+      y = _canvas.height()-1;
    vertices.push_back(point{x,y,currentColor});
 }
 
@@ -59,6 +102,23 @@ void canvas::background(unsigned char r, unsigned char g, unsigned char b)
    for(int row = 0; row < _canvas.height(); row++) {
       for(int col = 0; col < _canvas.width(); col++) {
       _canvas.set(row, col, ppm_pixel{r,g,b});
+      }
+   }
+}
+
+void canvas::backgroundGradient(unsigned char r1, unsigned char g1, unsigned char b1,
+         unsigned char r2, unsigned char g2, unsigned char b2) 
+{
+   float t;
+   unsigned char r, g, b;
+   
+   for(int row = 0; row < _canvas.height(); row++) {
+      for(int col = 0; col < _canvas.width(); col++) {
+         t = (row)/(float)(_canvas.height());
+         r = (unsigned char)(r1*(1-t)+r2*t);
+         g = (unsigned char)(g1*(1-t)+g2*t);
+         b = (unsigned char)(b1*(1-t)+b2*t);
+         _canvas.set(row, col, ppm_pixel{r,g,b});
       }
    }
 }
@@ -135,7 +195,7 @@ void canvas::drawLineHigh(point a, point b)
       t = (y-a.y)/(float)(b.y-a.y);
       color = interpolateColorLine(a.color, b.color, t);
       _canvas.set(y,x,color);
-      
+
       if(f > 0) { 
          x += inc;
          f += 2*(w-h);
@@ -187,16 +247,62 @@ void canvas::barycentricFill(point a, point b, point c)
 
          //if pixel is inside triangle
          if(alpha >= 0 && beta >= 0 && gamma >= 0) {
-            point offscreenPoint = {-1,-1,ppm_pixel{0,0,0}};
-            //handles adjacent edges
-            if(alpha > 0 || f_alpha*implicitLine(b,c,offscreenPoint) > 0 
-            || f_alpha*implicitLine(a,c,offscreenPoint) > 0 || f_alpha*implicitLine(a,b,offscreenPoint) > 0) {
+            color = interpolateColorTriangle(a.color, b.color, c.color, alpha, beta, gamma);
+            if(blend != NONE) {
+               color = blendLayers(color, row, col);
+            }
+            _canvas.set(row,col,color);
+            
+            //handles adjacent edges, but doesn't work correctly so for now just double draw edges
+            /*
+            float offscreen1 = (c.y - b.y) * (-1.5f - b.x) - (c.x - b.x) * (-1.1f - b.y);
+            float offscreen2 = (c.y - a.y) * (-1.5f - a.x) - (c.x - a.x) * (-1.1f - a.y);
+            float offscreen3 = (b.y - a.y) * (-1.5f - a.x) - (b.x - a.x) * (-1.1f - a.y);
+            
+            bool drawAlpha = alpha > 0 || f_alpha * offscreen1 > 0;
+            bool drawBeta = beta > 0 || f_beta * offscreen2 > 0;
+            bool drawGamma = gamma > 0 || f_gamma * offscreen3 > 0;
+            
+            if(drawAlpha && drawBeta && drawGamma) {
                color = interpolateColorTriangle(a.color, b.color, c.color, alpha, beta, gamma);
                _canvas.set(row,col,color);
             }
+            */
          }
       }
    }
+}
+
+ppm_pixel canvas::blendLayers(ppm_pixel color, int row, int col)
+{
+   ppm_pixel color2 = _canvas.get(row,col);
+   int r = color.r;
+   int g = color.g;
+   int b = color.b;
+
+   if(blend == MULTIPLY) {
+      r = 255*((color.r/255.0)*(color2.r/255.0));       
+      g = 255*((color.g/255.0)*(color2.g/255.0));
+      b = 255*((color.b/255.0)*(color2.b/255.0));
+   } else if(blend == ADD) {
+      r = 255*((color.r/255.0)+(color2.r/255.0));  
+      if(r > 255) r = 255;     
+      g = 255*((color.g/255.0)+(color2.g/255.0));
+      if(g > 255) g = 255;
+      b = 255*((color.b/255.0)+(color2.b/255.0));
+      if(b > 255) b = 255;
+   } else if(blend == DIFFERENCE) {
+      r = 255*((color.r/255.0)-(color2.r/255.0));  
+      if(r < 0) r = -r;     
+      g = 255*((color.g/255.0)-(color2.g/255.0));
+      if(g < 0) g = -g;
+      b = 255*((color.b/255.0)-(color2.b/255.0));
+      if(b < 0) b = -b;
+      if(b > 255) {
+         cout << b << endl;
+      }
+   }
+   return {(unsigned char)r, (unsigned char)g, (unsigned char)b};
 }
 
 int canvas::minimum(int a, int b, int c) 
@@ -214,4 +320,55 @@ int canvas::maximum(int a, int b, int c)
 int canvas::implicitLine(point p1, point p2, point p) 
 {
    return((p2.y-p1.y)*(p.x-p1.x)-(p2.x-p1.x)*(p.y-p1.y));
+}
+
+void canvas::drawCircle(int x, int y, int rad)
+{
+   int numSlices = 200;
+   float deltaTheta = 2*M_PI/(float)numSlices;
+   float theta1, theta2;
+
+   if(fill) {
+      begin(TRIANGLES);
+   } else {
+      begin(LINES);
+   }
+   for(int i = 0; i < numSlices; i++) {
+      theta1 = i*deltaTheta;
+      theta2 = (i+1)*deltaTheta;
+      vertex(x + (int)(rad*cos(theta1)), y + (int)(rad*sin(theta1)));
+      vertex(x + (int)(rad*cos(theta2)), y + (int)(rad*sin(theta2)));
+      if(fill) {
+         vertex(x,y);  
+      }                                   
+   }
+   end();
+}
+
+void canvas::drawRectangle(int x, int y, int wid, int hgt) 
+{
+   int leftX = x-(wid/2);
+   int rightX = x+(wid/2);
+   int upY = y-(hgt/2);
+   int downY = y+(hgt/2);
+   if(fill) {
+      begin(TRIANGLES);
+      vertex(leftX, upY);
+      vertex(rightX, upY);
+      vertex(rightX, downY);
+      vertex(leftX, upY);
+      vertex(leftX, downY);
+      vertex(rightX, downY);
+   } else {
+      begin(LINES);
+      vertex(leftX, upY);
+      vertex(rightX, upY);
+      vertex(rightX, upY);
+      vertex(rightX, downY);
+      vertex(rightX, downY);
+      vertex(leftX, downY);
+      vertex(leftX, downY);
+      vertex(leftX, upY);
+   }
+   end();
 }
